@@ -1,0 +1,108 @@
+{VERSION 6 0 "IBM INTEL NT" "6.0" }
+{USTYLETAB {CSTYLE "Maple Input" -1 0 "Courier" 0 1 255 0 0 1 0 1 0 0 
+1 0 0 0 0 1 }{PSTYLE "Normal" -1 0 1 {CSTYLE "" -1 -1 "" 0 1 0 0 0 0 
+0 0 0 0 0 0 0 0 0 0 }0 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }{PSTYLE "Text Ou
+tput" -1 2 1 {CSTYLE "" -1 -1 "Courier" 1 10 0 0 255 1 0 0 0 0 0 1 3 
+0 3 0 }1 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }{PSTYLE "" 2 6 1 {CSTYLE "" 
+-1 -1 "" 0 1 0 0 0 0 0 0 0 0 0 0 2 0 0 0 }0 0 0 -1 -1 -1 0 0 0 0 0 0 
+-1 0 }}
+{SECT 0 {EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 5774 "restart:\n\nVerify
+Conjecture118 := proc()\n\n    local SturmBound, LastN, MaxDegree, H,
+\n          periodic, numerator, euler,\n          r, k, j, n, base, s
+tep, sign, residue,\n          g1, g2, x,\n          F, A, invF, two, \+
+precision, nextPrecision,\n          modulusPoly, Fcut, temp, check, C
+,\n          value, failures, startTime;\n\n    startTime := time();\n
+\n    # ---------------------------------------------------------\n   \+
+ # 1. Verification range supplied by the modular-form proof.\n    # --
+-------------------------------------------------------\n\n    SturmBo
+und := iquo(26*839808, 12);\n    LastN      := iquo(SturmBound - 48 - \+
+20, 24);\n    MaxDegree  := 24*LastN + 20;\n    H          := iquo(Max
+Degree, 2);\n\n    if SturmBound <> 1819584\n       or LastN <> 75813
+\n       or MaxDegree <> 1819532 then\n        error \"Incorrect verif
+ication bound\";\n    end if;\n\n    printf(\"Building the numerator m
+odulo 3...\\n\");\n\n    # -------------------------------------------
+--------------\n    # 2. Periodic coefficients of\n    #\n    # (1+y)/
+(1-y)^15\n    #   = (1+y)(1-y^3)(1-y^9)/(1-y^27)  (mod 3).\n    # ----
+-----------------------------------------------------\n\n    periodic \+
+:= Array(\n        0..26, fill=0, datatype=integer[4]\n    );\n\n    f
+or j in [0, 1, 12, 13] do\n        periodic[j] := 1;\n    end do;\n\n \+
+   for j in [3, 4, 9, 10] do\n        periodic[j] := 2;\n    end do;\n
+\n    # ---------------------------------------------------------\n   \+
+ # 3. Even-power part of the numerator of G_8(q).\n    #\n    # The ex
+ponent 3*r^2+17*r+8 is always even.\n    # After replacing q^(2*j) by \+
+x^j, the coefficients of\n    # the rational factor are periodic[2*k m
+od 27].\n    # -------------------------------------------------------
+--\n\n    numerator := Array(\n        0..H, fill=0, datatype=integer[
+4]\n    );\n\n    r := 0;\n\n    while 3*r^2 + 17*r + 8 <= MaxDegree d
+o\n\n        base := iquo(3*r^2 + 17*r + 8, 2);\n        step := 2*r +
+ 1;\n        sign := (-1)^r;\n\n        residue := 0;\n\n        for j
+ from base by step to H do\n\n            numerator[j] :=\n           \+
+     modp(\n                    numerator[j] + sign*periodic[residue],
+\n                    3\n                );\n\n            residue := \+
+irem(residue + 2, 27);\n\n        end do;\n\n        r := r + 1;\n\n  \+
+  end do;\n\n    # ---------------------------------------------------
+------\n    # 4. Euler's pentagonal expansion of (x;x)_infinity.\n    \+
+#\n    # F(x) = 1 + sum_\{k>=1\} (-1)^k *\n    #          (x^(k*(3*k-1
+)/2) + x^(k*(3*k+1)/2)).\n    # --------------------------------------
+-------------------\n\n    euler := Array(\n        0..H, fill=0, data
+type=integer[4]\n    );\n\n    euler[0] := 1;\n    k := 1;\n\n    whil
+e iquo(k*(3*k-1), 2) <= H do\n\n        g1 := iquo(k*(3*k-1), 2);\n   \+
+     g2 := iquo(k*(3*k+1), 2);\n\n        sign := modp((-1)^k, 3);\n\n
+        euler[g1] := sign;\n\n        if g2 <= H then\n            eul
+er[g2] := sign;\n        end if;\n\n        k := k + 1;\n\n    end do;
+\n\n    F := modp1(\n        ConvertIn([seq(euler[j], j=0..H)], x),\n \+
+       3\n    );\n\n    A := modp1(\n        ConvertIn([seq(numerator[
+j], j=0..H)], x),\n        3\n    );\n\n    # ------------------------
+---------------------------------\n    # 5. Compute 1/F modulo x^(H+1)
+ by Newton iteration:\n    #\n    # invF_new = invF*(2-F*invF).\n    #
+\n    # Every polynomial operation takes place modulo 3.\n    # ------
+---------------------------------------------------\n\n    printf(\"Co
+mputing the inverse Euler series modulo 3...\\n\");\n\n    invF := mod
+p1(One(x), 3);\n    two  := modp1(Constant(2, x), 3);\n\n    precision
+ := 1;\n\n    while precision < H+1 do\n\n        nextPrecision := min
+(2*precision, H+1);\n\n        modulusPoly := modp1(\n            Conv
+ertIn(x^nextPrecision, x),\n            3\n        );\n\n        Fcut \+
+:= modp1(\n            Rem(F, modulusPoly),\n            3\n        );
+\n\n        temp := modp1(\n            Rem(Multiply(Fcut, invF), modu
+lusPoly),\n            3\n        );\n\n        temp := modp1(\n      \+
+      Subtract(two, temp),\n            3\n        );\n\n        invF \+
+:= modp1(\n            Rem(Multiply(invF, temp), modulusPoly),\n      \+
+      3\n        );\n\n        precision := nextPrecision;\n\n    end \+
+do;\n\n    # Check the entire computed inverse series.\n\n    check :=
+ modp1(\n        Rem(Multiply(F, invF), modulusPoly),\n        3\n    \+
+);\n\n    if not modp1(IsOne(check), 3) then\n        error \"The inve
+rse-series check failed\";\n    end if;\n\n    printf(\"Inverse-series
+ check: PASS\\n\");\n\n    # -----------------------------------------
+----------------\n    # 6. C(x) = sum D_8^0(2*j)*x^j modulo 3,\n    # \+
+   through degree H.\n    # ------------------------------------------
+---------------\n\n    printf(\"Multiplying the series and checking co
+efficients...\\n\");\n\n    C := modp1(\n        Rem(Multiply(A, invF)
+, modulusPoly),\n        3\n    );\n\n    failures := 0;\n\n    for n \+
+from 0 to LastN do\n\n        value := modp1(\n            Coeff(C, 12
+*n+10),\n            3\n        );\n\n        if value <> 0 then\n\n  \+
+          if failures < 10 then\n                printf(\n            \+
+        \"Failure: n=%d, argument=%d, residue=%d\\n\",\n              \+
+      n, 24*n+20, value\n                );\n            end if;\n\n  \+
+          failures := failures + 1;\n\n        end if;\n\n    end do;
+\n\n    # ---------------------------------------------------------\n \+
+   # 7. Report.\n    # -----------------------------------------------
+----------\n\n    printf(\"\\nSturm bound = %d\\n\", SturmBound);\n   \+
+ printf(\"Checked n = 0..%d\\n\", LastN);\n    printf(\"Number of case
+s = %d\\n\", LastN+1);\n    printf(\"Maximum argument = %d\\n\", MaxDe
+gree);\n    printf(\"Failures = %d\\n\", failures);\n\n    if failures
+ <> 0 then\n        error \"Finite verification failed\";\n    end if;
+\n\n    printf(\"Finite verification: PASS\\n\");\n    printf(\"CPU ti
+me = %.2f seconds\\n\", time()-startTime);\n\n    return true;\n\nend \+
+proc:\n\nVerifyConjecture118():" }}{PARA 6 "" 1 "" {TEXT -1 34 "Buildi
+ng the numerator modulo 3..." }}{PARA 6 "" 1 "" {TEXT -1 46 "Computing
+ the inverse Euler series modulo 3..." }}{PARA 6 "" 1 "" {TEXT -1 26 "
+Inverse-series check: PASS" }}{PARA 6 "" 1 "" {TEXT -1 51 "Multiplying
+ the series and checking coefficients..." }}{PARA 6 "" 1 "" {TEXT -1 
+0 "" }}{PARA 6 "" 1 "" {TEXT -1 21 "Sturm bound = 1819584" }}{PARA 6 "
+" 1 "" {TEXT -1 20 "Checked n = 0..75813" }}{PARA 6 "" 1 "" {TEXT -1 
+23 "Number of cases = 75814" }}{PARA 6 "" 1 "" {TEXT -1 26 "Maximum ar
+gument = 1819532" }}{PARA 6 "" 1 "" {TEXT -1 12 "Failures = 0" }}
+{PARA 6 "" 1 "" {TEXT -1 25 "Finite verification: PASS" }}{PARA 6 "" 
+1 "" {TEXT -1 26 "CPU time = 4677.75 seconds" }}}{EXCHG {PARA 0 "> " 
+0 "" {MPLTEXT 1 0 0 "" }}}}{MARK "1 0 0" 0 }{VIEWOPTS 1 1 0 1 1 1803 
+1 1 1 1 }{PAGENUMBERS 0 1 2 33 1 1 }
